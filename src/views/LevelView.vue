@@ -12,6 +12,24 @@ const store = useGameStore()
 
 const currentLevelData = computed(() => LEVELS[store.currentLevel])
 
+// Shuffle array in place (Fisher-Yates)
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+// Shuffled buttons with original indices preserved for store logic
+const shuffledButtons = computed(() => {
+  const orig = currentLevelData.value.buttons
+  const indices = orig.map((_, i) => i)
+  const shuffled = shuffle(indices)
+  return shuffled.map((origIndex) => ({ ...orig[origIndex], originalIndex: origIndex }))
+})
+
 // Track which slots have wrong color drop attempts (for shake animation)
 const shakeSlots = ref([false, false, false, false, false])
 
@@ -98,12 +116,12 @@ onBeforeUnmount(() => {
     <section class="buttons-section">
       <div class="buttons-row">
         <ButtonItem
-          v-for="(btn, btnIndex) in currentLevelData.buttons"
-          :key="btnIndex"
-          :button-index="btnIndex"
+          v-for="btn in shuffledButtons"
+          :key="btn.originalIndex"
+          :button-index="btn.originalIndex"
           :color-key="btn.colorKey"
           :label="btn.label"
-          :used="store.usedButtons[store.currentLevel].includes(btnIndex)"
+          :used="store.usedButtons[store.currentLevel].includes(btn.originalIndex)"
         />
       </div>
     </section>

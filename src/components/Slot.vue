@@ -99,7 +99,7 @@ function handleDrop(e) {
 
 .slot-check,
 .slot-placeholder {
-  font-size: clamp(32px, 5vw, 64px);
+  font-size: clamp(32px, 5vw, 20px);
   transition: all 0.3s ease;
 }
 
