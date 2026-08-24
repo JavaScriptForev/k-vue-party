@@ -12,18 +12,10 @@ const filledCount = computed(() =>
 
 const totalCount = 5
 
-function handleBack() {
-  if (store.currentLevel > 0) {
-    store.goBack()
-  }
-}
 </script>
 
 <template>
   <header class="header">
-    <button v-if="store.currentLevel > 0" class="back-btn" @click="handleBack">
-      ◀ Назад
-    </button>
     <div class="header-title">
       <h1>🚂 {{ level.title }}</h1>
       <p class="subtitle">{{ level.subtitle }}</p>

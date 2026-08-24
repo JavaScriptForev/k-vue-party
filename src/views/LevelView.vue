@@ -71,7 +71,7 @@ watch(
       if (toastTimeout) clearTimeout(toastTimeout)
       toastTimeout = setTimeout(() => {
         showToast.value = false
-      }, 2200)
+      }, 350)
     }
   }
 )
