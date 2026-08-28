@@ -2,14 +2,26 @@
 import { computed, ref } from 'vue'
 import { COLORS } from '@/data/levels.js'
 
+// Цвета для фейковых кнопок (не совпадают с основными)
+const FAKE_COLORS = [
+  '#6C3483', // тёмно-фиолетовый
+  '#A04000', // тёмно-коричневый
+  '#0E6655', // тёмно-бирюзовый
+  '#7B2D26', // тёмно-бордовый
+  '#1A5276'  // тёмно-синий
+]
+
 const props = defineProps({
   buttonIndex: { type: Number, required: true },
-  colorKey: { type: String, required: true },
+  colorKey: { type: String, required: false, default: null },
   label: { type: String, required: true },
-  used: { type: Boolean, default: false }
+  used: { type: Boolean, default: false },
+  isFake: { type: Boolean, default: false },
+  fakeIndex: { type: Number, default: 0 }
 })
 
-const color = COLORS[props.colorKey]
+const color = props.colorKey ? COLORS[props.colorKey] : null
+const fakeColor = FAKE_COLORS[props.fakeIndex % FAKE_COLORS.length]
 const isDragging = ref(false)
 
 function handleDragStart(e) {
@@ -17,10 +29,14 @@ function handleDragStart(e) {
     e.preventDefault()
     return
   }
+
   isDragging.value = true
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', String(props.buttonIndex))
-  e.dataTransfer.setData('application/x-color', props.colorKey)
+
+  if (props.colorKey) {
+    e.dataTransfer.setData('application/x-color', props.colorKey)
+  }
 }
 
 function handleDragEnd(e) {
@@ -30,31 +46,45 @@ function handleDragEnd(e) {
 
 <template>
   <div
-    class="button-item"
-    :class="{
+      class="button-item"
+      :class="{
       used,
+      fake: isFake,
       dragging: isDragging
     }"
-    :style="{
-      borderColor: used ? 'rgba(255,255,255,0.1)' : color.hex,
+      :style="{
+      borderColor: used ? 'rgba(255,255,255,0.05)' : (isFake ? fakeColor : color.hex),
+      borderWidth: '3px',
+      borderStyle: 'solid',
       background: used
         ? 'rgba(255,255,255,0.03)'
-        : `linear-gradient(135deg, ${color.hex}44, ${color.hex}22)`,
+        : (isFake
+          ? `linear-gradient(135deg, ${fakeColor}55, ${fakeColor}33)`
+          : `linear-gradient(135deg, ${color.hex}44, ${color.hex}22)`),
       boxShadow: used
         ? 'none'
-        : `0 8px 25px ${color.hex}44, inset 0 0 20px ${color.hex}22`
+        : (isFake
+          ? `0 6px 25px ${fakeColor}66, inset 0 0 20px ${fakeColor}33`
+          : `0 8px 25px ${color.hex}44, inset 0 0 20px ${color.hex}22`)
     }"
-    draggable="true"
-    @dragstart="handleDragStart"
-    @dragend="handleDragEnd"
+      draggable="true"
+      @dragstart="handleDragStart"
+      @dragend="handleDragEnd"
   >
-    <div class="button-color" :style="{ background: color.hex }"></div>
+    <div
+        class="button-color"
+        :style="{
+        background: isFake ? fakeColor : (color ? color.hex : 'rgba(255,255,255,0.1)'),
+        boxShadow: isFake || !color ? `0 0 20px ${fakeColor}66` : '0 0 20px currentColor',
+        border: isFake ? '2px solid rgba(255,255,255,0.2)' : 'none'
+      }"
+    ></div>
     <div class="button-label">
-      <div class="button-text" :class="{ used }">
+      <div class="button-text" :class="{ used, fake }">
         <span v-html="label.replace('\n', '<br>')" />
       </div>
     </div>
-    <div v-if="used" class="button-used-icon">
+    <div v-if="used && !isFake" class="button-used-icon">
       <span>✅</span>
     </div>
   </div>
@@ -66,20 +96,25 @@ function handleDragEnd(e) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 1vh, 12px);
-  border-radius: var(--button-radius);
-  border: 4px solid rgba(255,255,255,0.15);
-  padding: clamp(6px, 1vh, 14px);
+  gap: clamp(3px, 0.5vh, 6px);
+  border-radius: var(--button-radius, 12px);
+  padding: clamp(3px, 0.5vh, 7px);
   cursor: grab;
   transition: all 0.3s ease;
-  min-height: clamp(90px, 18vh, 220px);
+  min-height: clamp(45px, 9vh, 110px);
   position: relative;
   overflow: hidden;
 }
 
 .button-item:hover:not(.used) {
-  transform: translateY(-4px) scale(1.02);
-  border-color: rgba(255,255,255,0.4);
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(255,255,255,0.5) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3) !important;
+}
+
+.button-item.fake:hover:not(.used) {
+  border-color: rgba(255,255,255,0.5) !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3) !important;
 }
 
 .button-item:active:not(.used) {
@@ -89,25 +124,25 @@ function handleDragEnd(e) {
 
 .button-item.used {
   cursor: default;
-  opacity: 0.5;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .button-item.dragging {
-  opacity: 0.4;
+  opacity: 0.3;
   transform: scale(0.95);
 }
 
 .button-color {
-  width: clamp(32px, 5vw, 70px);
-  height: clamp(32px, 5vw, 70px);
+  width: clamp(16px, 2.5vw, 35px);
+  height: clamp(16px, 2.5vw, 35px);
   border-radius: 50%;
-  box-shadow: 0 0 20px currentColor;
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 
-.button-item.used .button-color {
-  opacity: 0.3;
-  box-shadow: none;
+.button-item.fake .button-color {
+  border: 2px solid rgba(255,255,255,0.2);
 }
 
 .button-label {
@@ -120,21 +155,30 @@ function handleDragEnd(e) {
 }
 
 .button-text {
-  font-size: clamp(18px, 2.5vw, 40px);
+  font-size: clamp(12px, 1.8vw, 28px);
   font-weight: 800;
   line-height: 1.2;
   transition: all 0.3s;
 }
 
 .button-text.used {
-  opacity: 0.4;
-  text-decoration: line-through;
+  opacity: 0;
+}
+
+.button-text.fake {
+  opacity: 1;
+  font-weight: 800;
+  color: rgba(255,255,255,0.9);
+}
+
+.button-item.fake .button-text {
+  color: rgba(255,255,255,0.9);
 }
 
 .button-used-icon {
   position: absolute;
-  top: clamp(4px, 0.8vh, 10px);
-  right: clamp(4px, 0.8vh, 10px);
-  font-size: clamp(20px, 3vw, 36px);
+  top: clamp(2px, 0.5vh, 6px);
+  right: clamp(2px, 0.5vh, 6px);
+  font-size: clamp(16px, 2vw, 24px);
 }
 </style>

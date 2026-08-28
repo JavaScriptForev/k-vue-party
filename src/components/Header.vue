@@ -6,12 +6,14 @@ import { LEVELS } from '@/data/levels.js'
 const store = useGameStore()
 const level = computed(() => LEVELS[store.currentLevel])
 
-const filledCount = computed(() =>
-  store.filledSlots[store.currentLevel].filter(s => s !== null).length
-)
+const totalCount = computed(() => {
+  return level.value?.activeCount || 5
+})
 
-const totalCount = 5
-
+const filledCount = computed(() => {
+  const slots = store.filledSlots[store.currentLevel] || []
+  return slots.filter(s => s !== null).length
+})
 </script>
 
 <template>
@@ -24,11 +26,11 @@ const totalCount = 5
       <span class="counter-text">Осталось: {{ totalCount - filledCount }}</span>
       <div class="progress-dots">
         <span
-          v-for="i in totalCount"
-          :key="i"
-          class="dot"
-          :class="{ filled: i <= filledCount }"
-          :style="{ background: i <= filledCount ? store.getSlotColor(i - 1) : 'rgba(255,255,255,0.2)' }"
+            v-for="i in totalCount"
+            :key="i"
+            class="dot"
+            :class="{ filled: i <= filledCount }"
+            :style="{ background: i <= filledCount ? store.getSlotColor(i - 1) : 'rgba(255,255,255,0.2)' }"
         ></span>
       </div>
     </div>
@@ -40,30 +42,11 @@ const totalCount = 5
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(8px, 1.2vh, 20px) clamp(20px, 2vw, 50px);
+  padding: clamp(6px, 1vh, 16px) clamp(16px, 2vw, 40px);
   background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%);
-  height: clamp(60px, 10vh, 130px);
-  min-height: 60px;
-  margin-top: 20px;
-}
-
-.back-btn {
-  font-family: var(--font-family);
-  font-size: clamp(18px, 2vw, 32px);
-  font-weight: 700;
-  padding: 8px 20px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 12px;
-  background: rgba(255,255,255,0.1);
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 120px;
-}
-
-.back-btn:hover {
-  background: rgba(255,255,255,0.2);
-  border-color: rgba(255,255,255,0.5);
+  height: clamp(50px, 8vh, 100px);
+  min-height: 50px;
+  margin-top: clamp(8px, 1.5vh, 20px);
 }
 
 .header-title {
@@ -72,40 +55,40 @@ const totalCount = 5
 }
 
 .header-title h1 {
-  font-size: clamp(28px, 4.5vw, 72px);
+  font-size: clamp(22px, 2.5vw, 56px);
   font-weight: 900;
   text-shadow: 0 4px 20px rgba(0,0,0,0.5);
   line-height: 1.1;
 }
 
 .subtitle {
-  font-size: clamp(16px, 2vw, 32px);
+  font-size: clamp(14px, 1.6vw, 26px);
   font-weight: 700;
   opacity: 0.7;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .header-counter {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1.5vw, 20px);
-  min-width: 200px;
+  gap: clamp(6px, 1.2vw, 16px);
+  min-width: 150px;
   justify-content: flex-end;
 }
 
 .counter-text {
-  font-size: clamp(18px, 2.2vw, 36px);
+  font-size: clamp(14px, 1.8vw, 28px);
   font-weight: 800;
 }
 
 .progress-dots {
   display: flex;
-  gap: clamp(4px, 0.8vw, 12px);
+  gap: clamp(3px, 0.6vw, 8px);
 }
 
 .dot {
-  width: clamp(16px, 2.5vw, 40px);
-  height: clamp(16px, 2.5vw, 40px);
+  width: clamp(12px, 2vw, 30px);
+  height: clamp(12px, 2vw, 30px);
   border-radius: 50%;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);

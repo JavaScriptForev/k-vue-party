@@ -2,36 +2,31 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { LEVELS, COLOR_KEYS } from '@/data/levels.js'
 
-function shuffleArray(arr) {
-  const shuffled = [...arr]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  return shuffled
-}
-
 export const useGameStore = defineStore('game', () => {
-  const currentLevel = ref(0) // 0, 1, 2
-  const filledSlots = ref([
-    [null, null, null, null, null],
-    [null, null, null, null, null],
-    [null, null, null, null, null]
-  ])
-  const usedButtons = ref([[], [], []]) // usedButtons[levelIndex] = array of button indices
+  const currentLevel = ref(0)
+
+  function getActiveCount(levelIndex) {
+    return LEVELS[levelIndex]?.activeCount || 5
+  }
+
+  function initSlotsForLevel(levelIndex) {
+    const count = getActiveCount(levelIndex)
+    return new Array(count).fill(null)
+  }
+
+  const filledSlots = ref(
+      LEVELS.map((_, index) => initSlotsForLevel(index))
+  )
+
+  const usedButtons = ref(LEVELS.map(() => []))
   const lastFilledSlot = ref(-1)
   const lastFillTime = ref(0)
   const isTransitioning = ref(false)
   const levelComplete = ref(false)
   const showFinalModal = ref(false)
 
-  // Create shuffled slot order for each level
-  const slotOrder = computed(() => {
-    return COLOR_KEYS.map((_, i) => i)
-  })
-
   function getSlotColor(slotIndex) {
-    return COLOR_KEYS[slotIndex]
+    return COLOR_KEYS[slotIndex % COLOR_KEYS.length]
   }
 
   function getSlotNumber(slotIndex) {
@@ -39,41 +34,46 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function fillSlot(levelIndex, buttonIndex, slotIndex) {
-    const colorKey = LEVELS[levelIndex].buttons[buttonIndex].colorKey
-    const slotColor = getSlotColor(slotIndex)
+    if (buttonIndex >= 100) {
+      return { success: false, message: 'Эта кнопка не подходит!' }
+    }
 
-    // Check if colors match
+    const validButtons = LEVELS[levelIndex].validButtons || []
+
+    if (buttonIndex >= validButtons.length) {
+      return { success: false, message: 'Эта кнопка не подходит!' }
+    }
+
+    const colorKey = validButtons[buttonIndex].colorKey
+    const slotColor = getSlotColor(slotIndex)
+    const activeCount = getActiveCount(levelIndex)
+
     if (colorKey !== slotColor) {
       return { success: false, message: 'Не тот цвет! Попробуй ещё!' }
     }
 
-    // Check if button already used
     if (usedButtons.value[levelIndex].includes(buttonIndex)) {
-      return { success: false, message: 'Эта кнопка уже была нажата!' }
+      return { success: false, message: 'Эта кнопка уже была использована!' }
     }
 
-    // Check if slot already filled
     if (filledSlots.value[levelIndex][slotIndex] !== null) {
       return { success: false, message: 'Слот уже занят!' }
     }
 
-    // Fill the slot
     filledSlots.value[levelIndex][slotIndex] = colorKey
     usedButtons.value[levelIndex].push(buttonIndex)
     lastFilledSlot.value = slotIndex
     lastFillTime.value = Date.now()
 
-    // Check if all 5 slots are filled
     const filledCount = filledSlots.value[levelIndex].filter(s => s !== null).length
-    if (filledCount === 5) {
+
+    if (filledCount === activeCount) {
       levelComplete.value = true
-      if (levelIndex === 2) {
-        // Final level - show confetti and modal
+      if (levelIndex === 4) {
         setTimeout(() => {
           showFinalModal.value = true
         }, 1000)
       } else {
-        // Move to next level
         setTimeout(() => {
           isTransitioning.value = true
           setTimeout(() => {
@@ -89,7 +89,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function resetLevel(levelIndex) {
-    filledSlots.value[levelIndex] = [null, null, null, null, null]
+    const count = getActiveCount(levelIndex)
+    filledSlots.value[levelIndex] = new Array(count).fill(null)
     usedButtons.value[levelIndex] = []
     lastFilledSlot.value = -1
     levelComplete.value = false
@@ -97,8 +98,11 @@ export const useGameStore = defineStore('game', () => {
 
   function resetGame() {
     currentLevel.value = 0
-    filledSlots.value = [[null,null,null,null,null], [null,null,null,null,null], [null,null,null,null,null]]
-    usedButtons.value = [[], [], []]
+    filledSlots.value = LEVELS.map((_, index) => {
+      const count = getActiveCount(index)
+      return new Array(count).fill(null)
+    })
+    usedButtons.value = LEVELS.map(() => [])
     lastFilledSlot.value = -1
     levelComplete.value = false
     showFinalModal.value = false
@@ -123,9 +127,9 @@ export const useGameStore = defineStore('game', () => {
     isTransitioning,
     levelComplete,
     showFinalModal,
-    slotOrder,
     getSlotColor,
     getSlotNumber,
+    getActiveCount,
     fillSlot,
     resetLevel,
     resetGame,
